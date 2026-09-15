@@ -1,6 +1,6 @@
 # playmat.games
 
-Webcam tabletop for physical card games. See `PLAN.md`.
+Webcam tabletop for physical card games.
 
 ## Run locally
 
