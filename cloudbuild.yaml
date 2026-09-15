@@ -1,0 +1,46 @@
+# Triggered by Terraform's google_cloudbuild_trigger, which supplies every
+# substitution below. For a manual run see terraform/README.md.
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - build
+      - '-t'
+      - '${_IMAGE}:${SHORT_SHA}'
+      - '-t'
+      - '${_IMAGE}:latest'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_API_KEY=${_NEXT_PUBLIC_FIREBASE_API_KEY}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=${_NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_PROJECT_ID=${_NEXT_PUBLIC_FIREBASE_PROJECT_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_FIREBASE_APP_ID=${_NEXT_PUBLIC_FIREBASE_APP_ID}'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_LIVEKIT_URL=${_NEXT_PUBLIC_LIVEKIT_URL}'
+      - '--build-arg'
+      - 'SITE_URL=${_SITE_URL}'
+      - .
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', '--all-tags', '${_IMAGE}']
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - '${_SERVICE}'
+      - '--image=${_IMAGE}:${SHORT_SHA}'
+      - '--region=${_REGION}'
+  # Smoke check: the new revision must answer a real card search.
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: bash
+    args:
+      - '-c'
+      - |
+        url=$$(gcloud run services describe ${_SERVICE} --region=${_REGION} --format='value(status.url)')
+        curl -sSf "$$url/api/cards/mtg/search?q=sol+ring" | grep -q '"cards"' && echo "smoke ok: $$url"
+images:
+  - '${_IMAGE}:${SHORT_SHA}'
+  - '${_IMAGE}:latest'
+options:
+  logging: CLOUD_LOGGING_ONLY

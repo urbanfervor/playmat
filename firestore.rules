@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Player records. Games are written by the player once a game they are
+    // seated at starts; wins by the host of the room that was won; hearts by a
+    // fellow player at that table. Counts are collection sizes.
+    match /users/{uid}/games/{roomId} {
+      function room() { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid == uid
+        && room().status in ['playing', 'paused', 'over']
+        && exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(uid));
+    }
+    match /users/{uid}/wins/{roomId} {
+      function room() { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && room().hostUid == request.auth.uid && room().winnerUid == uid;
+    }
+    match /users/{uid}/hearts/{heartId} {
+      function seated(who) { return exists(/databases/$(database)/documents/rooms/$(heartId.split('_')[1])/players/$(who)); }
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.auth.uid != uid
+        && heartId == request.auth.uid + '_' + request.resource.data.roomId
+        && request.resource.data.from == request.auth.uid
+        && seated(request.auth.uid) && seated(uid);
+      allow delete: if request.auth != null && heartId.split('_')[0] == request.auth.uid;
+    }
+
+    // Presence and friends. users/{uid} is the player's presence card, written
+    // by their own client (heartbeat, and the table they are seated at).
+    // following/{friendUid} is who they follow; only they read or write it.
+    match /users/{uid} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == uid;
+      match /following/{friendUid} {
+        allow read, write: if request.auth != null && request.auth.uid == uid;
+      }
+    }
+
+    // Site admins may close any table. Keep in step with ADMIN_EMAILS in lib/admin.ts.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in ['tom3fitzgerald@gmail.com'];
+    }
+
+    match /rooms/{roomId} {
+      function signedIn() { return request.auth != null; }
+      function roomData() { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
+      function isPlayer() { return exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(request.auth.uid)); }
+      function isHost() { return resource.data.hostUid == request.auth.uid; }
+      function unchanged(field, dflt) { return request.resource.data.get(field, dflt) == resource.data.get(field, dflt); }
+
+      allow read: if signedIn();
+      allow create: if signedIn() && request.resource.data.hostUid == request.auth.uid;
+      // Any seated player may update game state; only the host may change host,
+      // seats, bans, moderation, winner, or privacy. Admins may take over hosting.
+      allow update: if isAdmin() || (signedIn() && isPlayer()
+        && (isHost() || (unchanged('hostUid', '') && unchanged('seats', 0) && unchanged('banned', []) && unchanged('moderation', {}) && unchanged('winnerUid', null) && unchanged('private', false))));
+      allow delete: if isAdmin();
+
+      match /players/{uid} {
+        allow read: if signedIn();
+        // The player owns their doc; the host may also edit it (board tokens, fixes).
+        allow create, update: if signedIn() && (request.auth.uid == uid || roomData().hostUid == request.auth.uid)
+          && !(uid in roomData().get('banned', []));
+        allow delete: if isAdmin() || (signedIn() && (request.auth.uid == uid || roomData().hostUid == request.auth.uid));
+      }
+
+      // Anyone at the table may chat, seated or watching, unless the host removed them.
+      match /messages/{messageId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && request.resource.data.uid == request.auth.uid
+          && !(request.auth.uid in roomData().get('banned', []));
+        allow delete: if isAdmin();
+      }
+
+      match /log/{entryId} {
+        allow read: if request.auth != null;
+        allow create: if request.auth != null
+          && exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(request.auth.uid));
+        allow delete: if isAdmin();
+      }
+    }
+  }
+}
