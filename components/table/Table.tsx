@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { LiveKitRoom, RoomAudioRenderer, useParticipants, useTracks } from "@livekit/components-react";
 import { Track, VideoPresets, type RoomOptions } from "livekit-client";
+import { waitForPendingWrites } from "firebase/firestore";
+import { authHeaders, db } from "@/lib/firebase";
 import type { GameDefinition } from "@/games/types";
 import type { Player, Room } from "@/lib/rooms";
 import { useJoinAlerts } from "@/lib/joinAlerts";
@@ -62,11 +64,9 @@ export function Table(props: TableProps) {
   useJoinAlerts(room, props.players, me);
 
   useEffect(() => {
-    fetch("/api/livekit/token", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ roomId, uid, name: viewer.name, photoURL: viewer.photoURL, spectator }),
-    })
+    // The server grants publishing only once it sees our seat, so let a sit-down reach it first.
+    waitForPendingWrites(db())
+      .then(async () => fetch("/api/livekit/token", { method: "POST", headers: await authHeaders(), body: JSON.stringify({ roomId, name: viewer.name }) }))
       .then((r) => r.json())
       .then((b) => setToken(b.token));
   }, [roomId, uid, viewer.name, viewer.photoURL, spectator]);

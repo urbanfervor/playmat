@@ -12,6 +12,7 @@ import {
   setDoc,
   updateDoc,
   type Timestamp,
+  where,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { logEvent } from "./log";
@@ -111,9 +112,10 @@ export type RevealedCard = Player["revealedCard"];
 export const roomRef = (id: string) => doc(db(), "rooms", id);
 export const playerRef = (roomId: string, uid: string) => doc(db(), "rooms", roomId, "players", uid);
 
+/** The id is the link and the only credential for a private room, so it must not be guessable. */
 function newRoomId() {
   const alphabet = "abcdefghjkmnpqrstuvwxyz23456789";
-  return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
+  return Array.from(crypto.getRandomValues(new Uint32Array(12)), (n) => alphabet[n % alphabet.length]).join("");
 }
 
 export async function createRoom(hostUid: string, name: string, game: string, format: string, isPrivate: boolean): Promise<string> {
@@ -218,12 +220,12 @@ export function watchRoom(id: string, cb: (room: Room | null) => void) {
   return onSnapshot(roomRef(id), (snap) => cb(snap.exists() ? (snap.data() as Room) : null));
 }
 
-/** Streams the newest public rooms that have someone seated. */
+/** Streams the newest public rooms that have someone seated. Rules only allow listing public rooms. */
 export function watchLiveRooms(cb: (rooms: { id: string; room: Room }[]) => void) {
-  const q = query(collection(db(), "rooms"), orderBy("createdAt", "desc"), limit(30));
+  const q = query(collection(db(), "rooms"), where("private", "==", false), orderBy("createdAt", "desc"), limit(30));
   return onSnapshot(q, (snap) => {
     const rooms = snap.docs.map((d) => ({ id: d.id, room: d.data({ serverTimestamps: "estimate" }) as Room }));
-    cb(rooms.filter((r) => !r.room.private && Object.keys(r.room.seated ?? {}).length > 0));
+    cb(rooms.filter((r) => Object.keys(r.room.seated ?? {}).length > 0));
   });
 }
 

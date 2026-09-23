@@ -3,16 +3,19 @@ import Anthropic from "@anthropic-ai/sdk";
 import { games } from "@/games";
 import { cardProviders } from "@/games/cards";
 import { clientIp, rateLimit } from "@/lib/rateLimit";
+import { verifyUser } from "@/lib/serverAuth";
 
 const client = new Anthropic();
 const MAX_IMAGE_BASE64 = 1_000_000; // ~750KB JPEG; a card crop is well under 200KB
 
 export async function POST(req: Request) {
   if (!rateLimit(`identify:${clientIp(req)}`, 20, 60_000)) return NextResponse.json({ error: "too many requests" }, { status: 429 });
-  const { game, image } = (await req.json()) as { game: string; image: string };
+  const user = await verifyUser(req);
+  if (!user) return NextResponse.json({ error: "sign in required" }, { status: 401 });
+  const { game, image } = (await req.json().catch(() => ({}))) as { game?: string; image?: string };
+  if (typeof game !== "string" || !Object.hasOwn(games, game) || !Object.hasOwn(cardProviders, game)) return NextResponse.json({ error: "unknown game" }, { status: 404 });
   const def = games[game];
   const provider = cardProviders[game];
-  if (!def || !provider) return NextResponse.json({ error: "unknown game" }, { status: 404 });
   if (typeof image !== "string" || image.length > MAX_IMAGE_BASE64) return NextResponse.json({ error: "image too large" }, { status: 413 });
 
   let response;
@@ -46,9 +49,8 @@ export async function POST(req: Request) {
       ],
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("identify: model call failed:", message);
-    return NextResponse.json({ error: message }, { status: 502 });
+    console.error("identify: model call failed:", err instanceof Error ? err.message : String(err));
+    return NextResponse.json({ error: "identification failed" }, { status: 502 });
   }
 
   if (response.stop_reason === "refusal") return NextResponse.json({ name: "", card: null });

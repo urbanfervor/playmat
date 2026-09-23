@@ -7,6 +7,7 @@ Webcam tabletop for physical card games.
 ```bash
 cp .env.example .env.local   # fill in Firebase + LiveKit values
 npm install
+gcloud auth application-default login   # API routes read Firestore and verify sign-ins with firebase-admin
 npm run dev
 ```
 

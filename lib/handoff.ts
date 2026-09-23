@@ -1,6 +1,6 @@
 import { deleteApp, initializeApp } from "firebase/app";
 import { getAuth, signInWithCredential, signOut, type AuthCredential } from "firebase/auth";
-import { collection, deleteDoc, deleteField, FieldPath, getDoc, getDocs, orderBy, query, setDoc, updateDoc } from "firebase/firestore";
+import { collection, deleteDoc, deleteField, FieldPath, getDoc, getDocs, query, setDoc, updateDoc, where } from "firebase/firestore";
 import { app, db } from "./firebase";
 import { playerRef, roomRef, type Player, type Room, type RosterEntry } from "./rooms";
 
@@ -31,7 +31,7 @@ export async function peekUid(credential: AuthCredential): Promise<string> {
 
 /** As `from`: hand hosting and the current turn to `to`, then leave every table `from` is seated at. */
 export async function standUp(from: string, to: string): Promise<Seat[]> {
-  const rooms = await getDocs(query(collection(db(), "rooms"), orderBy(new FieldPath("seated", from))));
+  const rooms = await getDocs(query(collection(db(), "rooms"), where(new FieldPath("seated", from), "!=", null)));
   const seats: Seat[] = [];
   for (const snap of rooms.docs) {
     const room = snap.data() as Room;

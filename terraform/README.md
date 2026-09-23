@@ -98,3 +98,12 @@ Do these in order. Terraform cannot do them for you.
   Docker build args by the trigger, not as Cloud Run env vars. Server-only secrets are mounted from
   Secret Manager at runtime.
 - Firestore rules deploy from `../firestore.rules` on every apply; edit the file and re-apply.
+- Rules, the home-feed index and the runtime's Firestore read access all apply here, not on
+  deploy. When a change needs both, apply the index and IAM first, deploy the app, then apply the
+  rules, so neither old clients nor the new server hit a missing permission:
+
+  ```bash
+  terraform apply -target=google_firestore_index.public_rooms -target=google_project_iam_member.runtime_reads_firestore
+  # merge to main and let Cloud Build deploy, then:
+  terraform apply
+  ```

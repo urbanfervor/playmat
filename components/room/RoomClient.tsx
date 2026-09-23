@@ -26,7 +26,7 @@ export function RoomClient({ roomId }: { roomId: string }) {
 
   const me = players.find((p) => p.uid === user?.uid);
   useRecordGame(roomId, room, me);
-  useTablePresence(roomId, room?.name, me);
+  useTablePresence(roomId, room?.name, room?.private ?? false, me);
 
   if (!user || room === undefined) return <Centered>Loading…</Centered>;
   if (room === null) return <Centered>Room not found.</Centered>;
