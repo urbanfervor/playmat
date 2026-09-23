@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Deck } from "@/lib/rooms";
 import { cardLabel } from "./CardPicker";
 import { DeckView } from "./DeckView";
+import { safeImageUrl } from "@/lib/imageUrl";
 
 interface Props {
   name: string;
@@ -17,7 +18,7 @@ export function DeckBadge({ name, deck }: Props) {
     <>
       <button type="button" title={title} className="flex h-control items-center gap-1 rounded px-1 hover:bg-panel-2" onClick={() => setOpen(true)}>
         {deck.featured.map((c) => (
-          <img key={c.slot} src={c.imageUrl} alt="" className="h-5 rounded-sm" />
+          <img key={c.slot} src={safeImageUrl(c.imageUrl)} alt="" className="h-5 rounded-sm" />
         ))}
         <span className="hidden max-w-32 truncate text-ui text-muted lg:inline">{title}</span>
       </button>

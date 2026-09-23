@@ -41,6 +41,21 @@ resource "google_firestore_database" "playmat" {
   depends_on  = [google_project_service.required]
 }
 
+# The home feed: newest public rooms (rules only allow listing public ones).
+resource "google_firestore_index" "public_rooms" {
+  database    = google_firestore_database.playmat.name
+  collection  = "rooms"
+  query_scope = "COLLECTION"
+  fields {
+    field_path = "private"
+    order      = "ASCENDING"
+  }
+  fields {
+    field_path = "createdAt"
+    order      = "DESCENDING"
+  }
+}
+
 resource "google_firebaserules_ruleset" "firestore" {
   provider = google-beta
   source {

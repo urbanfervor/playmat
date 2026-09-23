@@ -14,6 +14,7 @@ export function rateLimit(key: string, limit: number, windowMs: number): boolean
   return w.count <= limit;
 }
 
+/** Cloud Run appends the real client address last; earlier entries are whatever the client sent. */
 export function clientIp(req: Request): string {
-  return req.headers.get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  return req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() || "unknown";
 }

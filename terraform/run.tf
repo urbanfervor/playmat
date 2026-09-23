@@ -68,6 +68,18 @@ resource "google_cloud_run_v2_service" "web" {
   depends_on = [google_secret_manager_secret_iam_member.runtime]
 }
 
+# The LiveKit token route reads rooms to check seats and bans. Read-only, and
+# only the playmat database: other apps in this project own (default).
+resource "google_project_iam_member" "runtime_reads_firestore" {
+  project = var.project_id
+  role    = "roles/datastore.viewer"
+  member  = "serviceAccount:${google_service_account.runtime.email}"
+  condition {
+    title      = "playmat-database-only"
+    expression = "resource.name == \"projects/${var.project_id}/databases/${google_firestore_database.playmat.name}\""
+  }
+}
+
 resource "google_cloud_run_v2_service_iam_member" "public" {
   name     = google_cloud_run_v2_service.web.name
   location = var.region

@@ -11,7 +11,7 @@ import { GameHistory } from "@/components/profile/GameHistory";
 /** The signed-in player's account, record, and recent games. */
 export function Profile() {
   const user = useUser();
-  const record = useRecord(user?.uid);
+  const record = useRecord(user?.uid, true);
   if (!user || !record) return <p className="text-muted">Loading…</p>;
 
   const name = user.isAnonymous ? "Guest" : (user.displayName ?? user.email ?? "Account");
