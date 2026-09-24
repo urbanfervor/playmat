@@ -1,6 +1,5 @@
 import type { Room } from "@/lib/rooms";
 import { Avatar } from "@/components/ui/Avatar";
-import { safeImageUrl } from "@/lib/imageUrl";
 
 /** One slot per seat: the player's headline card art, their avatar without one, or an outlined open seat. */
 export function SeatSlots({ room }: { room: Room }) {
@@ -17,7 +16,7 @@ export function SeatSlots({ room }: { room: Room }) {
             key={uid}
             title={`${name} · ${entry.card.name}`}
             className="bg-cover"
-            style={{ backgroundImage: `url("${safeImageUrl(entry.card.imageUrl) ?? ""}")`, backgroundPosition: "center 22%" }}
+            style={{ backgroundImage: `url(${entry.card.imageUrl})`, backgroundPosition: "center 22%" }}
           />
         ) : (
           <div key={uid} className="flex items-center justify-center">

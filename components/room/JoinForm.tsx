@@ -52,7 +52,7 @@ export function JoinForm({ roomId, uid, game, room, players, defaultName = "", p
           <p className="text-danger">This table is full.</p>
         ) : (
           <form className="flex flex-col gap-2" onSubmit={join}>
-            <Input placeholder="Your name" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} autoFocus />
+            <Input placeholder="Your name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
             <Button type="submit" variant="primary" size="md" disabled={!name.trim() || busy}>
               Sit down
             </Button>

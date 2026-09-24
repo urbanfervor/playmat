@@ -7,7 +7,7 @@ import { Icon } from "@/components/ui/Icon";
 /** The signed-in player's games, wins and hearts, inline in the nav. Links to the profile. */
 export function NavRecord() {
   const user = useUser();
-  const record = useRecord(user?.uid, true);
+  const record = useRecord(user?.uid);
   if (!record) return null;
   return (
     <Link

@@ -7,7 +7,7 @@ import { roomRef, updateRoom, type Player, type Room } from "./rooms";
 
 /**
  * A player's record lives in three subcollections so Firestore rules can enforce it:
- *   users/{uid}/games/{roomId}          created by the player once a game they are seated at starts; only they read it
+ *   users/{uid}/games/{roomId}          created by the player once a game they are seated at starts
  *   users/{uid}/wins/{roomId}           created by that room's host, only for room.winnerUid
  *   users/{uid}/hearts/{fromUid_roomId} created by a fellow player at that table
  * Counts are the collection sizes.
@@ -19,27 +19,25 @@ export interface Record {
   hearts: number;
 }
 
-/** Games are readable by their own player only, so pass withGames just for the viewer's own record. */
-export function useRecord(uid: string | undefined, withGames = false): Record | null {
+export function useRecord(uid: string | undefined): Record | null {
   const [record, setRecord] = useState<Record | null>(null);
   useEffect(() => {
     if (!uid) return;
     const counts: Record = { games: 0, wins: 0, hearts: 0 };
-    const keys: (keyof Record)[] = withGames ? ["games", "wins", "hearts"] : ["wins", "hearts"];
-    const stops = keys.map((key) =>
+    const stops = (Object.keys(counts) as (keyof Record)[]).map((key) =>
       onSnapshot(collection(db(), "users", uid, key), (s) => {
         counts[key] = s.size;
         setRecord({ ...counts });
       }),
     );
     return () => stops.forEach((stop) => stop());
-  }, [uid, withGames]);
+  }, [uid]);
   return record;
 }
 
 /** Counts this room as a game played once it has started. Safe to call repeatedly. */
 export function useRecordGame(roomId: string, room: Room | null | undefined, me: Player | undefined) {
-  const started = !!room && room.status !== "lobby";
+  const started = !!room && room.status !== "lobby" && room.status !== "scheduled";
   const uid = me?.uid;
   const game = room?.game;
   const name = room?.name;

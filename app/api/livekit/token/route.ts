@@ -1,29 +1,31 @@
 import { NextResponse } from "next/server";
 import { AccessToken } from "livekit-server-sdk";
-import { clientIp, rateLimit } from "@/lib/rateLimit";
-import { adminDb, verifyUser } from "@/lib/serverAuth";
+import { adminDb, isDocId } from "@/lib/server/firebaseAdmin";
+import { verifyCaller } from "@/lib/server/auth";
+import { publishPermission } from "@/lib/server/livekit";
+import { rateLimit } from "@/lib/rateLimit";
+import type { Room } from "@/lib/rooms";
 
-// The room link is the credential: anyone signed in holding a room id may watch
-// its video. Only players seated in Firestore may publish, and banned users get nothing.
+// The room link is the credential for watching: anyone signed in who holds a
+// room id may join its video. Only players seated there may publish.
 export async function POST(req: Request) {
-  if (!rateLimit(`token:${clientIp(req)}`, 20, 60_000)) return NextResponse.json({ error: "too many requests" }, { status: 429 });
-  const user = await verifyUser(req);
-  if (!user) return NextResponse.json({ error: "sign in required" }, { status: 401 });
-  const { roomId, name } = (await req.json().catch(() => ({}))) as { roomId?: unknown; name?: unknown };
-  if (typeof roomId !== "string" || !/^[a-z0-9]{1,32}$/.test(roomId)) return NextResponse.json({ error: "roomId required" }, { status: 400 });
+  const caller = await verifyCaller(req);
+  if (!caller) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!rateLimit(`token:${caller.uid}`, 20, 60_000)) return NextResponse.json({ error: "too many requests" }, { status: 429 });
+  const { roomId, name, photoURL } = (await req.json()) as { roomId: string; name: string; photoURL?: string | null };
+  if (!isDocId(roomId)) return NextResponse.json({ error: "roomId required" }, { status: 400 });
 
-  const roomRef = adminDb().collection("rooms").doc(roomId);
-  const [room, player] = await Promise.all([roomRef.get(), roomRef.collection("players").doc(user.uid).get()]);
-  if (!room.exists) return NextResponse.json({ error: "no such room" }, { status: 404 });
-  if (((room.get("banned") as string[] | undefined) ?? []).includes(user.uid)) return NextResponse.json({ error: "removed from this table" }, { status: 403 });
+  const db = adminDb();
+  const [roomSnap, seat] = await Promise.all([db.doc(`rooms/${roomId}`).get(), db.doc(`rooms/${roomId}/players/${caller.uid}`).get()]);
+  const room = roomSnap.data() as Room | undefined;
+  if (!room) return NextResponse.json({ error: "room not found" }, { status: 404 });
 
-  const seated = player.exists;
   const token = new AccessToken(process.env.LIVEKIT_API_KEY, process.env.LIVEKIT_API_SECRET, {
-    identity: user.uid,
-    name: seated ? (player.get("name") as string) : typeof name === "string" ? name.slice(0, 60) : "Viewer",
-    metadata: JSON.stringify({ photoURL: (seated ? player.get("photoURL") : user.picture) ?? null }),
+    identity: caller.uid,
+    name: String(name ?? "").slice(0, 100),
+    metadata: JSON.stringify({ photoURL: photoURL ?? null }),
     ttl: "6h",
   });
-  token.addGrant({ room: roomId, roomJoin: true, canPublish: seated, canSubscribe: true });
+  token.addGrant({ room: roomId, roomJoin: true, canSubscribe: true, ...publishPermission(room, caller.uid, seat.exists) });
   return NextResponse.json({ token: await token.toJwt() });
 }

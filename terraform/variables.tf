@@ -1,6 +1,6 @@
 variable "project_id" {
   type    = string
-  default = "sixth-oxygen"
+  default = "your-gcp-project"
 }
 
 variable "region" {
@@ -15,7 +15,7 @@ variable "service_name" {
 
 variable "domain" {
   type    = string
-  default = "playmat.vada.games"
+  default = "playmat.example.com"
 }
 
 variable "github_owner" {
@@ -31,7 +31,19 @@ variable "github_repo" {
 variable "livekit_url" {
   description = "LiveKit Cloud websocket URL. Baked into the client bundle at build time."
   type        = string
-  default     = "wss://urbanfervor-l3ajxdoo.livekit.cloud"
+  default     = "wss://your-project.livekit.cloud"
+}
+
+variable "email_from" {
+  description = "Sender for want-to-play alert emails. The domain must be verified in Resend."
+  type        = string
+  default     = "Playmat <alerts@example.com>"
+}
+
+variable "admin_email" {
+  description = "Gets an email for every new table and want-to-play registration."
+  type        = string
+  default     = "admin@example.com"
 }
 
 # Both depend on manual steps (README). Set false to apply before those are done.

@@ -3,20 +3,20 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Player records. Games are written by the player once a game they are
     // seated at starts; wins by the host of the room that was won; hearts by a
-    // fellow player at that table. Counts are collection sizes. Games are
-    // readable by their player only: their ids are room ids, private tables included.
+    // fellow player at that table. Counts are collection sizes.
     match /users/{uid}/games/{roomId} {
       function room() { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
-      allow read: if request.auth != null && request.auth.uid == uid;
+      allow read: if request.auth != null;
       allow create: if request.auth != null && request.auth.uid == uid
         && room().status in ['playing', 'paused', 'over']
+        && room().get('seated', {}).size() >= 2
         && exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(uid));
     }
     match /users/{uid}/wins/{roomId} {
       function room() { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
       allow read: if request.auth != null;
       allow create: if request.auth != null && room().hostUid == request.auth.uid && room().winnerUid == uid
-        && exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(uid));
+        && room().get('seated', {}).size() >= 2 && uid in room().get('seated', {});
     }
     match /users/{uid}/hearts/{heartId} {
       function seated(who) { return exists(/databases/$(database)/documents/rooms/$(heartId.split('_')[1])/players/$(who)); }
@@ -29,111 +29,123 @@ service cloud.firestore {
     }
 
     // Presence and friends. users/{uid} is the player's presence card, written
-    // by their own client (heartbeat, and the public table they are seated at).
-    // It is fetched by uid, never listed. following/{friendUid} is who they
-    // follow; only they read or write it.
+    // by their own client (heartbeat, and the table they are seated at).
+    // following/{friendUid} is who they follow; only they read or write it.
     match /users/{uid} {
-      allow get: if request.auth != null;
+      allow read: if request.auth != null;
       allow write: if request.auth != null && request.auth.uid == uid;
       match /following/{friendUid} {
         allow read, write: if request.auth != null && request.auth.uid == uid;
       }
     }
 
+    // "Want to play" registrations. Any signed-in visitor (guests included) may read; the owner posts and removes their own.
+    // The server (admin SDK) records which tables each one was alerted about.
+    // A TTL policy on endsAt deletes them once their window ends.
+    match /wants/{wantId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'photoURL', 'game', 'format', 'startsAt', 'endsAt', 'notify', 'createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() <= 30
+        && request.resource.data.game is string && request.resource.data.game.size() <= 30
+        && request.resource.data.format is string && request.resource.data.format.size() <= 30
+        && request.resource.data.notify is list && request.resource.data.notify.size() > 0
+        && request.resource.data.notify.hasOnly(['push', 'email'])
+        && request.resource.data.endsAt > request.resource.data.startsAt
+        && request.resource.data.endsAt < request.time + duration.value(8, 'd')
+        && !('alerted' in request.resource.data);
+      allow delete: if request.auth != null && resource.data.uid == request.auth.uid;
+    }
+
+    // A browser's push subscription, read by the server to deliver want alerts.
+    match /pushSubs/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+
     // Site admins may close any table. Keep in step with ADMIN_EMAILS in lib/admin.ts.
     function isAdmin() {
       return request.auth != null
         && request.auth.token.email_verified == true
-        && request.auth.token.email in ['tom3fitzgerald@gmail.com'];
+        && request.auth.token.email in ['admin@example.com'];
     }
 
     match /rooms/{roomId} {
       function signedIn() { return request.auth != null; }
       function roomData() { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
-      function playerPath(uid) { return /databases/$(database)/documents/rooms/$(roomId)/players/$(uid); }
-      function isPlayer() { return exists(playerPath(request.auth.uid)); }
+      function isPlayer() { return exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(request.auth.uid)); }
       function isHost() { return resource.data.hostUid == request.auth.uid; }
-      function changed() { return request.resource.data.diff(resource.data).affectedKeys(); }
-      // Only the caller's own entry in a uid-keyed map may change.
-      function onlyOwnKey(field) {
-        return request.resource.data.get(field, {}).diff(resource.data.get(field, {})).affectedKeys().hasOnly([request.auth.uid]);
-      }
-      function validNewRoom() {
-        let r = request.resource.data;
-        return r.keys().hasOnly(['name', 'description', 'game', 'format', 'hostUid', 'seats', 'createdAt', 'status', 'seated', 'roster', 'turn', 'lastRoll', 'banned', 'moderation', 'private'])
-          && r.hostUid == request.auth.uid
-          && r.name is string && r.name.size() <= 100
-          && r.description is string && r.description.size() <= 1000
-          && r.seats is int && r.seats > 0 && r.seats <= 10
-          && r.createdAt == request.time
-          && r.status == 'lobby'
-          && r.seated == {} && r.roster == {} && r.banned == [] && r.moderation == {}
-          && r.private is bool;
+      // The host may cancel a scheduled table before it opens, taking its subcollections with it.
+      function cancelling() { return signedIn() && roomData().hostUid == request.auth.uid && roomData().get('status', 'lobby') == 'scheduled'; }
+      // Only the caller's own entry in a uid-keyed map changes.
+      function ownEntryOnly(field) { return request.resource.data.get(field, {}).diff(resource.data.get(field, {})).affectedKeys().hasOnly([request.auth.uid]); }
+      // Room names and blurbs reach alert emails, so keep them short.
+      function validSettings() {
+        let d = request.resource.data;
+        return d.name is string && d.name.size() <= 60 && d.get('description', '').size() <= 300
+          && d.seats is int && d.seats >= 1 && d.seats <= 8 && d.get('private', false) is bool;
       }
 
-      // The room id is the credential: anyone signed in may open a room by id,
-      // but only public rooms can be listed, plus rooms the caller sits at (handoff).
+      // Private tables are opened by id only; listing returns public ones (or
+      // the caller's own seats, for moving them between accounts).
       allow get: if signedIn();
-      allow list: if signedIn() && (resource.data.private == false || request.auth.uid in resource.data.seated);
-      allow create: if signedIn() && validNewRoom();
-      // The host may change anything. Other seated players may only play: take
-      // or leave their own seat, pass turns, roll, and start a game from the lobby.
-      allow update: if isAdmin() || (signedIn() && isPlayer()
-        && (isHost() || (changed().hasOnly(['seated', 'roster', 'turn', 'lastRoll', 'status'])
-          && onlyOwnKey('seated') && onlyOwnKey('roster')
-          && (!('status' in changed()) || (resource.data.get('status', 'lobby') == 'lobby' && request.resource.data.status == 'playing')))));
-      allow delete: if isAdmin();
+      allow list: if isAdmin() || (signedIn() && (resource.data.private == false || resource.data.seated[request.auth.uid] != null));
+      allow create: if signedIn() && request.resource.data.hostUid == request.auth.uid
+        && request.resource.data.status in ['lobby', 'scheduled']
+        && request.resource.data.seated == {} && request.resource.data.get('roster', {}) == {}
+        && request.resource.data.banned == [] && request.resource.data.moderation == {}
+        && request.resource.data.get('winnerUid', null) == null
+        && validSettings();
+      // The host may update anything, seated or not (they open scheduled tables
+      // before sitting). Any seated player may update game state and their own
+      // seat entry. Admins may take over hosting.
+      allow update: if isAdmin() || (signedIn()
+        && ((isHost() && validSettings())
+          || (isPlayer()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seated', 'roster', 'turn', 'lastRoll', 'status'])
+            && ownEntryOnly('seated') && ownEntryOnly('roster')
+            && (request.resource.data.get('status', 'lobby') == resource.data.get('status', 'lobby')
+              || request.resource.data.status in ['lobby', 'playing', 'paused', 'over']))));
+      allow delete: if isAdmin() || cancelling();
 
       match /players/{uid} {
-        function validNewPlayer() {
-          let p = request.resource.data;
-          return p.uid == uid
-            && p.name is string && p.name.size() > 0 && p.name.size() <= 60
-            && p.seat is int && p.seat >= 0 && p.seat < roomData().seats;
-        }
         allow read: if signedIn();
-        // Players seat only themselves. The host may also edit a seated
-        // player's board (tokens, counters, revealed card), not who they are.
-        allow create: if signedIn() && request.auth.uid == uid
+        // Players sit themselves down while a seat is free; the host may also edit their doc (board tokens, fixes).
+        allow create: if signedIn() && request.auth.uid == uid && request.resource.data.uid == uid
           && !(uid in roomData().get('banned', []))
-          && validNewPlayer();
-        allow update: if signedIn() && !(uid in roomData().get('banned', []))
+          && roomData().get('seated', {}).size() < roomData().seats;
+        allow update: if signedIn() && (request.auth.uid == uid || roomData().hostUid == request.auth.uid)
           && request.resource.data.uid == uid
-          && (request.auth.uid == uid
-            || (roomData().hostUid == request.auth.uid
-              && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['tokens', 'counters', 'opponentCounters', 'revealedCard'])));
+          && !(uid in roomData().get('banned', []));
         allow delete: if isAdmin() || (signedIn() && (request.auth.uid == uid || roomData().hostUid == request.auth.uid));
       }
 
-      // Anyone at the table may chat, seated or watching, unless the host removed
-      // them. A seated player chats under their seat name; watchers are marked.
+      // People who plan to spectate a scheduled table. Each owns their own entry.
+      match /watchers/{uid} {
+        allow read: if signedIn();
+        allow create: if signedIn() && request.auth.uid == uid && request.resource.data.uid == uid
+          && request.resource.data.get('name', '').size() <= 100;
+        allow delete: if isAdmin() || cancelling() || (signedIn() && request.auth.uid == uid);
+      }
+
+      // Anyone at the table may chat, seated or watching, unless the host removed them.
       match /messages/{messageId} {
-        function validMessage() {
-          let m = request.resource.data;
-          let seated = exists(playerPath(request.auth.uid));
-          return m.keys().hasOnly(['uid', 'name', 'text', 'spectator', 'createdAt'])
-            && m.uid == request.auth.uid
-            && m.text is string && m.text.size() > 0 && m.text.size() <= 500
-            && m.name is string && m.name.size() <= 60
-            && m.createdAt == request.time
-            && m.spectator == !seated
-            && (!seated || m.name == get(playerPath(request.auth.uid)).data.name);
-        }
         allow read: if request.auth != null;
         allow create: if request.auth != null
+          && request.resource.data.uid == request.auth.uid
           && !(request.auth.uid in roomData().get('banned', []))
-          && validMessage();
-        allow delete: if isAdmin();
+          && request.resource.data.keys().hasOnly(['uid', 'name', 'text', 'spectator', 'createdAt'])
+          && request.resource.data.text is string && request.resource.data.text.size() <= 500
+          && request.resource.data.name is string && request.resource.data.name.size() <= 100;
+        allow delete: if isAdmin() || cancelling();
       }
 
       match /log/{entryId} {
         allow read: if request.auth != null;
         allow create: if request.auth != null
-          && exists(playerPath(request.auth.uid))
+          && exists(/databases/$(database)/documents/rooms/$(roomId)/players/$(request.auth.uid))
           && request.resource.data.keys().hasOnly(['text', 'createdAt'])
-          && request.resource.data.text is string && request.resource.data.text.size() <= 500
-          && request.resource.data.createdAt == request.time;
-        allow delete: if isAdmin();
+          && request.resource.data.text is string && request.resource.data.text.size() <= 500;
+        allow delete: if isAdmin() || cancelling();
       }
     }
   }

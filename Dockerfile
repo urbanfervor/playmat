@@ -18,11 +18,9 @@ ENV NEXT_PUBLIC_FIREBASE_API_KEY=$NEXT_PUBLIC_FIREBASE_API_KEY \
     SITE_URL=$SITE_URL
 
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY . ./
-RUN npm run build && chown -R node:node .next
-
-USER node
+RUN npm run build
 
 ENV PORT=3000
 CMD [ "npm", "start" ]

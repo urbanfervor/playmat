@@ -1,5 +1,5 @@
 import type { CardSummary } from "@/games/types";
-import { authHeaders } from "./firebase";
+import { postAsUser } from "./api";
 
 export interface Identification {
   name: string;
@@ -51,11 +51,7 @@ export function cropAtClick(
 }
 
 export async function identifyCard(game: string, image: string): Promise<Identification> {
-  const res = await fetch("/api/identify", {
-    method: "POST",
-    headers: await authHeaders(),
-    body: JSON.stringify({ game, image }),
-  });
+  const res = await postAsUser("/api/identify", { game, image });
   if (!res.ok) throw new Error(`identify ${res.status}`);
   return res.json();
 }

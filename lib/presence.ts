@@ -41,21 +41,18 @@ export function useHeartbeat(uid: string | undefined) {
   }, [uid]);
 }
 
-/**
- * Records the table the player is seated at, and clears it when they stand up or
- * leave the page. Private tables are never recorded: presence is readable by anyone.
- */
-export function useTablePresence(roomId: string, roomName: string | undefined, isPrivate: boolean, me: Player | undefined) {
+/** Records the table the player is seated at, and clears it when they stand up or leave the page. */
+export function useTablePresence(roomId: string, roomName: string | undefined, me: Player | undefined) {
   const uid = me?.uid;
   const name = me?.name;
   const photoURL = me?.photoURL ?? null;
   useEffect(() => {
     if (!uid || !roomName) return;
-    write(uid, { table: isPrivate ? null : { id: roomId, name: roomName }, name, photoURL });
+    write(uid, { table: { id: roomId, name: roomName }, name, photoURL });
     return () => {
       write(uid, { table: null });
     };
-  }, [roomId, roomName, isPrivate, uid, name, photoURL]);
+  }, [roomId, roomName, uid, name, photoURL]);
 }
 
 export function watchPresence(uid: string, cb: (presence: Presence | null) => void) {

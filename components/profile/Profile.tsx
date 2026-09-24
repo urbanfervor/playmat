@@ -7,11 +7,13 @@ import { Icon } from "@/components/ui/Icon";
 import { Stats } from "@/components/profile/Stats";
 import { Avatar } from "@/components/ui/Avatar";
 import { GameHistory } from "@/components/profile/GameHistory";
+import { AllTables } from "@/components/profile/AllTables";
+import { isAdmin } from "@/lib/admin";
 
 /** The signed-in player's account, record, and recent games. */
 export function Profile() {
   const user = useUser();
-  const record = useRecord(user?.uid, true);
+  const record = useRecord(user?.uid);
   if (!user || !record) return <p className="text-muted">Loading…</p>;
 
   const name = user.isAnonymous ? "Guest" : (user.displayName ?? user.email ?? "Account");
@@ -41,6 +43,7 @@ export function Profile() {
         </div>
       </section>
       <GameHistory uid={user.uid} />
+      {isAdmin(user) && <AllTables />}
     </>
   );
 }

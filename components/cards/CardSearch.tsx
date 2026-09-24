@@ -4,7 +4,6 @@ import type { CardSummary, GameDefinition } from "@/games/types";
 import { updatePlayer } from "@/lib/rooms";
 import { Dialog } from "@/components/ui/Dialog";
 import { Input } from "@/components/ui/Input";
-import { safeImageUrl } from "@/lib/imageUrl";
 
 interface Props {
   roomId: string;
@@ -50,7 +49,7 @@ export function CardSearch({ roomId, game, uid, onPick, onClose }: Props) {
       <div className="grid grid-cols-3 gap-2 overflow-y-auto sm:grid-cols-4">
         {cards.map((c) => (
           <button key={c.id} type="button" className="rounded-md p-1 text-left hover:bg-panel-2" title={c.text} onClick={() => reveal(c)}>
-            <img src={safeImageUrl(c.imageUrl)} alt={c.name} className="rounded" />
+            <img src={c.imageUrl} alt={c.name} className="rounded" />
             <div className="mt-1 truncate text-xs">
               {c.name}
               {c.subtitle && <span className="text-muted">, {c.subtitle}</span>}

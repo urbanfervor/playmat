@@ -13,6 +13,7 @@ interface Props {
 }
 
 const badge: Record<Status, string> = {
+  scheduled: "bg-panel text-muted",
   lobby: "bg-panel text-muted",
   playing: "bg-live text-white",
   paused: "bg-panel text-fg",
@@ -33,7 +34,7 @@ export function GameStatus({ roomId, room, players, editable, onOver }: Props) {
   }
   return (
     <Select size="sm" value={status} title="Game status" onChange={(e) => change(e.target.value as Status)}>
-      {(Object.keys(statusLabels) as Status[]).map((s) => (
+      {(Object.keys(statusLabels) as Status[]).filter((s) => s !== "scheduled").map((s) => (
         <option key={s} value={s}>{statusLabels[s]}</option>
       ))}
     </Select>

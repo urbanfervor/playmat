@@ -22,6 +22,7 @@ export const mtg: GameDefinition = {
     { id: "partner", name: "Partner or background", query: "is:commander", formats: ["commander"], optional: true },
   ],
   deckList: true,
+  cards: true,
   statLabels: ["Power", "Toughness"],
   markers: [
     { id: "monarch", name: "Monarch", blurb: "Draw a card at your end step. Whoever deals combat damage to you becomes the monarch." },

@@ -48,6 +48,8 @@ export interface GameDefinition {
   deckSlots: DeckSlotDef[];
   /** Players may paste a full decklist. */
   deckList: boolean;
+  /** A card database backs search, identify, and decks. */
+  cards: boolean;
 }
 
 export interface CardSummary {

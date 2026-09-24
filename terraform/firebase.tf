@@ -41,11 +41,18 @@ resource "google_firestore_database" "playmat" {
   depends_on  = [google_project_service.required]
 }
 
-# The home feed: newest public rooms (rules only allow listing public ones).
-resource "google_firestore_index" "public_rooms" {
-  database    = google_firestore_database.playmat.name
-  collection  = "rooms"
-  query_scope = "COLLECTION"
+# Want-to-play registrations delete themselves once their window ends.
+resource "google_firestore_field" "wants_ttl" {
+  database   = google_firestore_database.playmat.name
+  collection = "wants"
+  field      = "endsAt"
+  ttl_config {}
+}
+
+# The home feed lists public tables only (firestore.rules refuses anything else).
+resource "google_firestore_index" "rooms_public_by_created" {
+  database   = google_firestore_database.playmat.name
+  collection = "rooms"
   fields {
     field_path = "private"
     order      = "ASCENDING"
@@ -53,6 +60,19 @@ resource "google_firestore_index" "public_rooms" {
   fields {
     field_path = "createdAt"
     order      = "DESCENDING"
+  }
+}
+
+resource "google_firestore_index" "rooms_public_by_scheduled" {
+  database   = google_firestore_database.playmat.name
+  collection = "rooms"
+  fields {
+    field_path = "private"
+    order      = "ASCENDING"
+  }
+  fields {
+    field_path = "scheduledAt"
+    order      = "ASCENDING"
   }
 }
 

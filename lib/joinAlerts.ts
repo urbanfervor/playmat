@@ -41,7 +41,7 @@ export function useJoinAlertsSetting() {
 }
 
 /** Two soft sine notes, a rising fifth. */
-function playTone() {
+export function playTone() {
   const ctx = new AudioContext();
   const gain = ctx.createGain();
   gain.connect(ctx.destination);

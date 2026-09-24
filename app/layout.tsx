@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans, Inter, JetBrains_Mono, Manrope, Space_Grotesk } from "next/font/google";
 import { prefsInitScript } from "@/lib/prefs";
 import { Heartbeat } from "@/components/friends/Heartbeat";
+import { GameReady } from "@/components/wants/GameReady";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen bg-bg font-sans text-sm text-fg antialiased">
         <Heartbeat />
+        <GameReady />
         {children}
       </body>
     </html>

@@ -18,6 +18,7 @@ export const swu: GameDefinition = {
     { id: "base", name: "Base", query: "type:base" },
   ],
   deckList: false,
+  cards: true,
   statLabels: ["Power", "HP"],
   markers: [
     { id: "initiative", name: "Initiative", blurb: "You take the first action this round. Claim it to pass for the phase and hold it next round." },

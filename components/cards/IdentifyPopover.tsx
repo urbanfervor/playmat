@@ -1,7 +1,6 @@
 "use client";
 import type { Identification } from "@/lib/identify";
 import { useIsMobile } from "@/lib/useIsMobile";
-import { safeImageUrl } from "@/lib/imageUrl";
 
 interface Props {
   x: number;
@@ -27,7 +26,7 @@ export function IdentifyPopover({ x, y, result, onClose }: Props) {
       {typeof result === "object" && (
         result.card ? (
           <>
-            <img src={safeImageUrl(result.card.imageUrl)} alt={result.card.name} className="mx-auto max-h-[55dvh] rounded" />
+            <img src={result.card.imageUrl} alt={result.card.name} className="mx-auto max-h-[55dvh] rounded" />
             {result.card.text && <p className="mt-1 max-h-32 overflow-y-auto whitespace-pre-line text-xs text-muted">{result.card.text}</p>}
           </>
         ) : (

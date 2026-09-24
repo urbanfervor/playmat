@@ -3,7 +3,6 @@ import type { GameDefinition } from "@/games/types";
 import type { BoardToken, Player } from "@/lib/rooms";
 import { bumpCounter } from "@/lib/counters";
 import { Icon } from "@/components/ui/Icon";
-import { safeImageUrl } from "@/lib/imageUrl";
 
 interface Props {
   roomId: string;
@@ -53,7 +52,7 @@ export function TokenPill({ roomId, game, player, token, editable }: Props) {
   }
 
   if (token.kind === "card") {
-    return <img src={safeImageUrl(token.imageUrl)} alt={token.name} title={token.name} draggable={false} className="w-24 rounded-md shadow-xl ring-1 ring-white/20 transition-[width] hover:w-40" />;
+    return <img src={token.imageUrl} alt={token.name} title={token.name} draggable={false} className="w-24 rounded-md shadow-xl ring-1 ring-white/20 transition-[width] hover:w-40" />;
   }
 
   const keywords = token.statuses.map((s) => game.keywords.find((k) => k.id === s)).filter(Boolean);

@@ -16,7 +16,6 @@ import { Life } from "@/components/overlay/Life";
 import { IdentifyPopover } from "@/components/cards/IdentifyPopover";
 import { TileBar } from "./TileBar";
 import { noFlips, type ViewFlips } from "./ViewControls";
-import { safeImageUrl } from "@/lib/imageUrl";
 
 interface Props {
   roomId: string;
@@ -120,7 +119,7 @@ export function PlayerTile({ roomId, game, room, player, players, isMe, uid, vie
       <Life roomId={roomId} game={game} player={player} seat={seat} editable={isMe} hasTurn={hasTurn} />
       {player.revealedCard && (
         <img
-          src={safeImageUrl(player.revealedCard.imageUrl)}
+          src={player.revealedCard.imageUrl}
           alt={player.revealedCard.name}
           title={isMe ? "Click to hide" : player.revealedCard.name}
           className="absolute bottom-2 left-1/2 w-1/3 max-w-56 -translate-x-1/2 shadow-xl"

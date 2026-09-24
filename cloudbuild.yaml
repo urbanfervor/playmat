@@ -1,6 +1,14 @@
 # Triggered by Terraform's google_cloudbuild_trigger, which supplies every
 # substitution below. For a manual run see terraform/README.md.
 steps:
+  # Infra first, so new secrets, env vars, IAM and Firestore rules are live
+  # before the new code that needs them. Locked by the GCS state backend.
+  - name: 'hashicorp/terraform:1.9'
+    dir: terraform
+    entrypoint: sh
+    args:
+      - '-c'
+      - 'terraform init -input=false && terraform apply -input=false -auto-approve'
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - build
