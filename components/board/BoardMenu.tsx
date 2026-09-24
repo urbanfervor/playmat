@@ -38,17 +38,21 @@ export function BoardMenu({ x, y, game, editable, onIdentify, onAddToken, onPlac
       onClick={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
     >
-      <button type="button" className={item} onClick={run(onIdentify)}>
-        <Icon name="search" /> Identify card
-      </button>
+      {game.cards && (
+        <button type="button" className={item} onClick={run(onIdentify)}>
+          <Icon name="search" /> Identify card
+        </button>
+      )}
       {editable && (
         <>
           <button type="button" className={item} onClick={run(onAddToken)}>
             <Icon name="plus" /> Add token
           </button>
-          <button type="button" className={item} onClick={run(onPlaceCard)}>
-            <Icon name="card" /> Place a card here…
-          </button>
+          {game.cards && (
+            <button type="button" className={item} onClick={run(onPlaceCard)}>
+              <Icon name="card" /> Place a card here…
+            </button>
+          )}
           {game.counters.filter((c) => !c.perOpponent).map((c) => (
             <button key={c.id} type="button" className={item} onClick={run(() => onPlaceCounter(c.id))}>
               <Icon name="coin" /> Place {c.name} here

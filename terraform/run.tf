@@ -3,6 +3,15 @@ resource "google_service_account" "runtime" {
   display_name = "Playmat Cloud Run runtime"
 }
 
+# Want-to-play alerts: the server reads wants and push subscriptions from
+# Firestore and looks up registrants' email addresses in Firebase Auth.
+resource "google_project_iam_member" "runtime" {
+  for_each = toset(["roles/datastore.user", "roles/firebaseauth.viewer"])
+  project  = var.project_id
+  role     = each.value
+  member   = "serviceAccount:${google_service_account.runtime.email}"
+}
+
 resource "google_artifact_registry_repository" "playmat" {
   repository_id = "playmat"
   format        = "DOCKER"
@@ -40,6 +49,8 @@ resource "google_cloud_run_v2_service" "web" {
           LIVEKIT_API_KEY    = "livekit-api-key"
           LIVEKIT_API_SECRET = "livekit-api-secret"
           ANTHROPIC_API_KEY  = "anthropic-api-key"
+          VAPID_PUBLIC_KEY   = "vapid-public-key"
+          VAPID_PRIVATE_KEY  = "vapid-private-key"
         }
         content {
           name = env.key
@@ -50,6 +61,26 @@ resource "google_cloud_run_v2_service" "web" {
             }
           }
         }
+      }
+
+      env {
+        name = "RESEND_API_KEY"
+        value_source {
+          secret_key_ref {
+            secret  = "resend-api-key"
+            version = "latest"
+          }
+        }
+      }
+
+      env {
+        name  = "EMAIL_FROM"
+        value = var.email_from
+      }
+
+      env {
+        name  = "ADMIN_EMAIL"
+        value = var.admin_email
       }
 
       resources {
@@ -65,19 +96,7 @@ resource "google_cloud_run_v2_service" "web" {
     ignore_changes = [template[0].containers[0].image, client, client_version]
   }
 
-  depends_on = [google_secret_manager_secret_iam_member.runtime]
-}
-
-# The LiveKit token route reads rooms to check seats and bans. Read-only, and
-# only the playmat database: other apps in this project own (default).
-resource "google_project_iam_member" "runtime_reads_firestore" {
-  project = var.project_id
-  role    = "roles/datastore.viewer"
-  member  = "serviceAccount:${google_service_account.runtime.email}"
-  condition {
-    title      = "playmat-database-only"
-    expression = "resource.name == \"projects/${var.project_id}/databases/${google_firestore_database.playmat.name}\""
-  }
+  depends_on = [google_secret_manager_secret_iam_member.runtime, google_secret_manager_secret_iam_member.resend]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "public" {

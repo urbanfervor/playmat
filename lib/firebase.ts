@@ -17,12 +17,6 @@ export function app() {
 export const db = () => getFirestore(app(), "playmat");
 export const auth = () => getAuth(app());
 
-/** Headers that prove to our API routes who is calling. */
-export async function authHeaders(): Promise<Record<string, string>> {
-  const token = await auth().currentUser?.getIdToken();
-  return { "Content-Type": "application/json", ...(token ? { Authorization: `Bearer ${token}` } : {}) };
-}
-
 /**
  * Streams the signed-in user, signing in anonymously whenever there is none.
  * Fires again when an anonymous account is linked to Google or the user signs out.

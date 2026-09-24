@@ -1,5 +1,6 @@
 // Fixed-window rate limit, in memory per server instance. A guardrail against
-// runaway API spend (vision calls, LiveKit minutes, Scryfall proxying), not auth.
+// runaway API spend and spam (vision calls, LiveKit minutes, alerts, Scryfall
+// proxying), not auth. Signed-in routes key on the uid as well as the address.
 const windows = new Map<string, { count: number; resetAt: number }>();
 
 export function rateLimit(key: string, limit: number, windowMs: number): boolean {
@@ -14,7 +15,7 @@ export function rateLimit(key: string, limit: number, windowMs: number): boolean
   return w.count <= limit;
 }
 
-/** Cloud Run appends the real client address last; earlier entries are whatever the client sent. */
+/** Google's front end appends the connecting address, so the last entry is the only one a client cannot forge. */
 export function clientIp(req: Request): string {
   return req.headers.get("x-forwarded-for")?.split(",").at(-1)?.trim() || "unknown";
 }

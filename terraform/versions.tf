@@ -3,7 +3,7 @@ terraform {
 
   # Bucket is created by hand once (README step 0), then `terraform init -migrate-state`.
   backend "gcs" {
-    bucket = "sixth-oxygen-tfstate"
+    bucket = "your-tfstate-bucket"
     prefix = "playmat"
   }
   required_providers {

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { IconButton, iconButtonClass } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
-import { SettingsMenu } from "./SettingsMenu";
 import { AccountMenu } from "./AccountMenu";
 import { NavRecord } from "./NavRecord";
 import { FriendsMenu } from "@/components/friends/FriendsMenu";
@@ -64,13 +63,16 @@ export function TopNav({ roomId, title, isPrivate }: Props) {
         <NavRecord />
         <FriendsMenu />
         <AccountMenu />
-        <SettingsMenu />
-        <Link href="/" title={roomId ? "Leave table" : "Home"} className={iconButtonClass}>
-          <Icon name={roomId ? "leave" : "home"} />
-        </Link>
-        <IconButton title="Hide navigation" onClick={() => toggle(false)}>
-          <Icon name="chevron-up" />
-        </IconButton>
+        {roomId && (
+          <Link href="/" title="Leave table" className={iconButtonClass}>
+            <Icon name="leave" />
+          </Link>
+        )}
+        <span className={roomId ? "contents" : "hidden sm:contents"}>
+          <IconButton title="Hide navigation" onClick={() => toggle(false)}>
+            <Icon name="chevron-up" />
+          </IconButton>
+        </span>
       </div>
     </header>
   );

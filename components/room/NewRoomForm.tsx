@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { games } from "@/games";
 import { createRoom } from "@/lib/rooms";
+import { announceTable } from "@/lib/wants";
 import { useUser } from "@/lib/useUser";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
@@ -11,6 +12,15 @@ import { Select } from "@/components/ui/Select";
 
 const KEY = "playmat:newTable";
 
+/** Tomorrow at the top of this hour, as a datetime-local value in the viewer's time zone. */
+function defaultScheduledAt() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setMinutes(0, 0, 0);
+  d.setMinutes(-d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
 export function NewRoomForm() {
   const router = useRouter();
   const user = useUser();
@@ -18,6 +28,8 @@ export function NewRoomForm() {
   const [gameId, setGameId] = useState("mtg");
   const [formatId, setFormatId] = useState(games.mtg.formats[0].id);
   const [isPrivate, setPrivate] = useState(false);
+  const [scheduled, setScheduled] = useState(false);
+  const [scheduledAt, setScheduledAt] = useState(defaultScheduledAt);
   const [joinCode, setJoinCode] = useState("");
   const [busy, setBusy] = useState(false);
   const game = games[gameId];
@@ -39,7 +51,8 @@ export function NewRoomForm() {
     if (!user) return;
     setBusy(true);
     localStorage.setItem(KEY, JSON.stringify({ name: name.trim(), gameId, formatId, isPrivate }));
-    const id = await createRoom(user.uid, name.trim(), gameId, formatId, isPrivate);
+    const id = await createRoom(user.uid, name.trim(), gameId, formatId, isPrivate, scheduled ? new Date(scheduledAt) : null);
+    announceTable(id);
     router.push(`/room/${id}`);
   }
 
@@ -75,8 +88,18 @@ export function NewRoomForm() {
           Private
           <span className="text-xs text-muted">· join by link only</span>
         </label>
-        <Button variant="primary" size="md" disabled={!user || !name.trim() || busy} onClick={create}>
-          Create table
+        <label className="flex items-center gap-2 text-sm text-fg">
+          <input type="checkbox" className="accent-accent" checked={scheduled} onChange={(e) => setScheduled(e.target.checked)} />
+          Schedule for later
+          <span className="text-xs text-muted">· players reserve seats</span>
+        </label>
+        {scheduled && (
+          <Field label="Starts">
+            <Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
+          </Field>
+        )}
+        <Button variant="primary" size="md" disabled={!user || !name.trim() || (scheduled && !scheduledAt) || busy} onClick={create}>
+          {scheduled ? "Schedule table" : "Create table"}
         </Button>
       </section>
       <form

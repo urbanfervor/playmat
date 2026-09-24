@@ -117,12 +117,16 @@ export function Toolbar({ roomId, game, room, players, me, onSearch, onShortcuts
         </>
       )}
       <Divider />
-      <Button variant="ghost" onClick={onSearch}>
-        <Icon name="card" /> Show card
-      </Button>
-      <Button variant="ghost" title={me.deck ? "Edit your deck" : "Set your deck"} onClick={onDeck}>
-        <Icon name="deck" /> Deck
-      </Button>
+      {game.cards && (
+        <>
+          <Button variant="ghost" onClick={onSearch}>
+            <Icon name="card" /> Show card
+          </Button>
+          <Button variant="ghost" title={me.deck ? "Edit your deck" : "Set your deck"} onClick={onDeck}>
+            <Icon name="deck" /> Deck
+          </Button>
+        </>
+      )}
       <Button variant="ghost" onClick={() => roll(6)}>
         <Icon name="dice" /> d6
       </Button>

@@ -2,7 +2,6 @@
 import type { Deck } from "@/lib/rooms";
 import { Dialog } from "@/components/ui/Dialog";
 import { cardLabel } from "./CardPicker";
-import { safeImageUrl } from "@/lib/imageUrl";
 
 interface Props {
   name: string;
@@ -19,7 +18,7 @@ export function DeckView({ name, deck, onClose }: Props) {
         <div className="flex flex-wrap gap-3">
           {deck.featured.map((c) => (
             <figure key={c.slot} className="w-44">
-              <img src={safeImageUrl(c.imageUrl)} alt={c.name} className="rounded-md shadow-lg" />
+              <img src={c.imageUrl} alt={c.name} className="rounded-md shadow-lg" />
               <figcaption className="mt-1 truncate text-xs text-muted">{cardLabel(c)}</figcaption>
             </figure>
           ))}

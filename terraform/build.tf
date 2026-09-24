@@ -3,31 +3,22 @@ resource "google_service_account" "build" {
   display_name = "Playmat Cloud Build"
 }
 
-# The project is shared with other services, so the build account gets deploy
-# rights on the playmat service and image repo only, not project-wide.
+# Every build runs `terraform apply` before deploying (cloudbuild.yaml), so
+# the build SA needs to manage everything in this folder: editor for the
+# resources, plus the admin roles editor lacks for IAM bindings and secrets.
 resource "google_project_iam_member" "build" {
+  for_each = toset([
+    "roles/run.admin",
+    "roles/artifactregistry.writer",
+    "roles/logging.logWriter",
+    "roles/editor",
+    "roles/resourcemanager.projectIamAdmin",
+    "roles/iam.serviceAccountAdmin",
+    "roles/secretmanager.admin",
+  ])
   project = var.project_id
-  role    = "roles/logging.logWriter"
+  role    = each.value
   member  = "serviceAccount:${google_service_account.build.email}"
-}
-
-moved {
-  from = google_project_iam_member.build["roles/logging.logWriter"]
-  to   = google_project_iam_member.build
-}
-
-resource "google_cloud_run_v2_service_iam_member" "build_deploys" {
-  name     = google_cloud_run_v2_service.web.name
-  location = var.region
-  role     = "roles/run.developer"
-  member   = "serviceAccount:${google_service_account.build.email}"
-}
-
-resource "google_artifact_registry_repository_iam_member" "build_pushes" {
-  repository = google_artifact_registry_repository.playmat.name
-  location   = var.region
-  role       = "roles/artifactregistry.writer"
-  member     = "serviceAccount:${google_service_account.build.email}"
 }
 
 # Deploying a revision that runs as the runtime SA requires actAs on it.
@@ -64,5 +55,5 @@ resource "google_cloudbuild_trigger" "main" {
     _SITE_URL                         = "https://${var.domain}"
   }
 
-  depends_on = [google_project_iam_member.build, google_cloud_run_v2_service_iam_member.build_deploys, google_artifact_registry_repository_iam_member.build_pushes, google_service_account_iam_member.build_acts_as_runtime]
+  depends_on = [google_project_iam_member.build, google_service_account_iam_member.build_acts_as_runtime]
 }

@@ -6,7 +6,6 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { IconButton } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { safeImageUrl } from "@/lib/imageUrl";
 
 interface Props {
   gameId: string;
@@ -48,7 +47,7 @@ export function CardPicker({ gameId, slot, value, onChange }: Props) {
     <Field label={slot.optional ? `${slot.name} (optional)` : slot.name}>
       {value ? (
         <div className="flex h-control-md items-center gap-2 rounded-md border border-line bg-bg px-2">
-          <img src={safeImageUrl(value.imageUrl)} alt="" className="h-6 rounded-sm" />
+          <img src={value.imageUrl} alt="" className="h-6 rounded-sm" />
           <span className="min-w-0 flex-1 truncate text-sm">{cardLabel(value)}</span>
           <IconButton title="Clear" onClick={() => onChange(undefined)}>
             <Icon name="x" size={13} />
@@ -62,7 +61,7 @@ export function CardPicker({ gameId, slot, value, onChange }: Props) {
               {cards.map((c) => (
                 <li key={c.id}>
                   <button type="button" className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-panel-2" onClick={() => pick(c)}>
-                    <img src={safeImageUrl(c.imageUrl)} alt="" className="h-8 rounded-sm" />
+                    <img src={c.imageUrl} alt="" className="h-8 rounded-sm" />
                     <span className="truncate">{cardLabel(c)}</span>
                   </button>
                 </li>

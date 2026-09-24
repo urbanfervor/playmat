@@ -2,13 +2,14 @@ import Link from "next/link";
 import { getGame } from "@/games";
 import { statusLabels, type Room } from "@/lib/rooms";
 import { deleteRoom } from "@/lib/admin";
+import { formatScheduled } from "@/lib/schedule";
 import { IconButton } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { AvatarStack } from "./AvatarStack";
 import { SeatSlots } from "./SeatSlots";
 
-const gameTag: Record<string, string> = { mtg: "MTG", swu: "SWU" };
-const mats: Record<string, [string, string]> = { mtg: ["#3d5a3a", "#1c2d1f"], swu: ["#2f3f5c", "#161d2e"] };
+const gameTag: Record<string, string> = { mtg: "MTG", swu: "SWU", cyberpunk: "CP" };
+const mats: Record<string, [string, string]> = { mtg: ["#3d5a3a", "#1c2d1f"], swu: ["#2f3f5c", "#161d2e"], cyberpunk: ["#5c2f5a", "#1e1428"] };
 
 function elapsed(room: Room) {
   const min = room.createdAt ? Math.floor((Date.now() - room.createdAt.toMillis()) / 60000) : 0;
@@ -41,7 +42,9 @@ export function TableCard({ id, room, admin = false }: { id: string; room: Room;
         <span className={`absolute left-2 top-2 rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white ${status === "playing" ? "bg-live" : "bg-black/55"}`}>
           {status === "playing" ? "Live" : statusLabels[status]}
         </span>
-        <span className="absolute right-2 top-2 rounded bg-black/55 px-1.5 py-0.5 font-mono text-[11px] text-white">{elapsed(room)}</span>
+        <span className="absolute right-2 top-2 rounded bg-black/55 px-1.5 py-0.5 font-mono text-[11px] text-white">
+          {status === "scheduled" && room.scheduledAt ? formatScheduled(room.scheduledAt) : elapsed(room)}
+        </span>
         <span className="absolute bottom-2 left-2 rounded bg-black/55 px-1.5 py-0.5 text-[11px] font-semibold text-white">{gameTag[room.game]}</span>
         <span className={`absolute bottom-2 right-2 rounded px-1.5 py-0.5 text-[11px] font-medium ${open ? "bg-accent text-accent-fg" : "bg-black/55 text-white"}`}>
           {players.length}/{seats}{open && " · open"}
