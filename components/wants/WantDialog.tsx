@@ -125,7 +125,7 @@ export function WantDialog({ onClose }: { onClose: () => void }) {
           </Select>
         </Field>
       </div>
-      <Field label="Tell me by (pick one or both)">
+      <Field label="Notify me by">
         <div className="flex gap-2">
           <Button size="md" className="flex-1" active={notify.includes("push")} disabled={!canPush()} onClick={() => toggle("push")}>Browser</Button>
           <Button size="md" className="flex-1" active={notify.includes("email")} onClick={() => toggle("email")}>Email</Button>

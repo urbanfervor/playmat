@@ -14,7 +14,7 @@ export function TournamentCard({ id, tournament: t }: { id: string; tournament: 
         <span className="flex items-center gap-1 rounded bg-accent/15 px-1.5 py-0.5 text-[11px] font-semibold text-accent">
           <Icon name="trophy" size={12} /> {t.prize}
         </span>
-        <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white ${t.status === "running" ? "bg-live" : "bg-black/55"}`}>
+        <span className={`rounded px-1.5 py-0.5 text-[11px] font-semibold text-white ${t.status === "running" ? "bg-live" : "bg-black/55"}`}>
           {tournamentStatusLabels[t.status]}
         </span>
       </div>

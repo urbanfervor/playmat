@@ -6,6 +6,7 @@ import { createRoom } from "@/lib/rooms";
 import { announceTable } from "@/lib/wants";
 import { useUser } from "@/lib/useUser";
 import { Button } from "@/components/ui/Button";
+import { Checkbox } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
@@ -59,7 +60,7 @@ export function NewRoomForm() {
   return (
     <div className="flex flex-col gap-4">
       <section className="flex flex-col gap-3 rounded-lg border border-line bg-panel p-4">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-muted">New table</h2>
+        <h2 className="text-base font-semibold">Start a table</h2>
         <Field label="Table name">
           <Input placeholder="Thursday Commander pod" value={name} maxLength={60} onChange={(e) => setName(e.target.value)} />
         </Field>
@@ -83,16 +84,8 @@ export function NewRoomForm() {
             ))}
           </Select>
         </Field>
-        <label className="flex items-center gap-2 text-sm text-fg">
-          <input type="checkbox" className="accent-accent" checked={isPrivate} onChange={(e) => setPrivate(e.target.checked)} />
-          Private
-          <span className="text-xs text-muted">· join by link only</span>
-        </label>
-        <label className="flex items-center gap-2 text-sm text-fg">
-          <input type="checkbox" className="accent-accent" checked={scheduled} onChange={(e) => setScheduled(e.target.checked)} />
-          Schedule for later
-          <span className="text-xs text-muted">· players reserve seats</span>
-        </label>
+        <Checkbox label="Private" hint="Unlisted. People join by link." checked={isPrivate} onChange={setPrivate} />
+        <Checkbox label="Schedule for later" hint="Players reserve seats ahead of time." checked={scheduled} onChange={setScheduled} />
         {scheduled && (
           <Field label="Starts">
             <Input type="datetime-local" value={scheduledAt} onChange={(e) => setScheduledAt(e.target.value)} />
@@ -103,14 +96,17 @@ export function NewRoomForm() {
         </Button>
       </section>
       <form
-        className="flex items-center gap-2"
+        className="flex flex-col gap-2"
         onSubmit={(e) => {
           e.preventDefault();
           if (joinCode.trim()) router.push(`/room/${joinCode.trim().toLowerCase()}`);
         }}
       >
-        <Input className="font-mono tracking-wider" placeholder="Room code" value={joinCode} onChange={(e) => setJoinCode(e.target.value)} />
-        <Button type="submit" size="md">Join</Button>
+        <span className="text-xs font-medium text-muted">Have a room code?</span>
+        <div className="flex gap-2">
+          <Input className="font-mono" placeholder="abcd" value={joinCode} onChange={(e) => setJoinCode(e.target.value)} />
+          <Button type="submit" size="md" disabled={!joinCode.trim()}>Join</Button>
+        </div>
       </form>
     </div>
   );

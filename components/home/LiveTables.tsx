@@ -17,23 +17,25 @@ export function LiveTables() {
   const shown = gameId ? rooms.filter((r) => r.room.game === gameId) : rooms;
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center gap-1">
-        <h2 className="mr-2 flex items-center gap-2 whitespace-nowrap text-base font-semibold">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-base font-semibold">
           <span className="h-2 w-2 rounded-full bg-live" />
           Live tables
         </h2>
+        <span className="text-xs text-muted">{shown.length} playing</span>
+      </div>
+      <div className="flex flex-wrap gap-1">
         <Button variant="ghost" active={gameId === null} onClick={() => setGameId(null)}>All</Button>
         {Object.values(games).map((g) => (
           <Button key={g.id} variant="ghost" active={gameId === g.id} onClick={() => setGameId(g.id)}>{g.name}</Button>
         ))}
-        <span className="ml-auto text-xs text-muted">{shown.length} playing</span>
       </div>
       <div className="grid grid-cols-1 gap-ui sm:grid-cols-2 lg:grid-cols-3">
         {shown.map((r) => (
           <TableCard key={r.id} id={r.id} room={r.room} admin={isAdmin(user)} />
         ))}
       </div>
-      {shown.length === 0 && <p className="text-muted">No live tables right now. Start one.</p>}
+      {shown.length === 0 && <p className="text-sm text-muted">Nobody is playing right now. Start a table and it will show up here.</p>}
     </section>
   );
 }

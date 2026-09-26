@@ -6,8 +6,6 @@ export function FantasyBackground() {
       <div className="fantasy-bg__stars fantasy-bg__stars--far" />
       <div className="fantasy-bg__stars fantasy-bg__stars--mid" />
       <div className="fantasy-bg__stars fantasy-bg__stars--near" />
-      <div className="fantasy-bg__ring" />
-      <div className="fantasy-bg__comet" />
       <div className="fantasy-bg__grain" />
       <div className="fantasy-bg__vignette" />
     </div>
