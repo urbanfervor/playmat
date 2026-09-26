@@ -14,9 +14,11 @@ interface Props {
   roomId?: string;
   title?: string;
   isPrivate?: boolean;
+  /** Where the leave button goes; home by default. */
+  leaveHref?: string;
 }
 
-export function TopNav({ roomId, title, isPrivate }: Props) {
+export function TopNav({ roomId, title, isPrivate, leaveHref = "/" }: Props) {
   const [open, setOpen] = useState(true);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ export function TopNav({ roomId, title, isPrivate }: Props) {
         <FriendsMenu />
         <AccountMenu />
         {roomId && (
-          <Link href="/" title="Leave table" className={iconButtonClass}>
+          <Link href={leaveHref} title="Leave table" className={iconButtonClass}>
             <Icon name="leave" />
           </Link>
         )}

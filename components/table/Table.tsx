@@ -39,6 +39,8 @@ export interface TableProps {
   players: Player[];
   /** Undefined while spectating. */
   me?: Player;
+  /** Where the nav's leave button goes; home by default. */
+  leaveHref?: string;
   onSitDown: () => void;
 }
 
@@ -82,7 +84,7 @@ export function Table(props: TableProps) {
       className="flex h-dvh flex-col"
     >
       <RoomAudioRenderer />
-      <TopNav roomId={roomId} title={room.name} isPrivate={room.private} />
+      <TopNav roomId={roomId} title={room.name} isPrivate={room.private} leaveHref={props.leaveHref} />
       <div className="flex min-h-0 flex-1">
         <Grid {...props} />
         <SidePanel roomId={roomId} viewer={viewer} tab={tab} onTab={setTab} open={panel} onClose={closePanel} />

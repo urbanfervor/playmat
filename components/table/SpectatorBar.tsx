@@ -8,8 +8,9 @@ import { Icon } from "@/components/ui/Icon";
 import { GameStatus } from "./GameStatus";
 import { Spectators } from "./Spectators";
 
-export function SpectatorBar({ roomId, room, players, onSitDown, onPanel }: TableProps & { onPanel: () => void }) {
+export function SpectatorBar({ roomId, uid, room, players, onSitDown, onPanel }: TableProps & { onPanel: () => void }) {
   const admin = isAdmin(useUser());
+  const canSit = !room.invited || room.invited.includes(uid);
   const router = useRouter();
   async function closeTable() {
     if (!confirm(`Close “${room.name}”? This removes the table for everyone.`)) return;
@@ -21,9 +22,12 @@ export function SpectatorBar({ roomId, room, players, onSitDown, onPanel }: Tabl
       <GameStatus roomId={roomId} room={room} players={players} editable={false} />
       <Icon name="eye" /> Watching · {players.length} at the table
       <Spectators players={players} />
-      <Button variant="primary" className="ml-auto" onClick={onSitDown}>
-        Sit down
-      </Button>
+      <span className="ml-auto" />
+      {canSit && (
+        <Button variant="primary" onClick={onSitDown}>
+          Sit down
+        </Button>
+      )}
       <Button variant="ghost" className="md:hidden" onClick={onPanel}>
         <Icon name="chat" /> Chat
       </Button>

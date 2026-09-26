@@ -16,10 +16,11 @@ interface Props {
   /** Prefilled with the first name from the Google display name when signed in. */
   defaultName?: string;
   photoURL: string | null;
+  leaveHref?: string;
   onWatch: () => void;
 }
 
-export function JoinForm({ roomId, uid, game, room, players, defaultName = "", photoURL, onWatch }: Props) {
+export function JoinForm({ roomId, uid, game, room, players, defaultName = "", photoURL, leaveHref, onWatch }: Props) {
   const [name, setName] = useState(defaultName);
   const [busy, setBusy] = useState(false);
   const format = game.formats.find((f) => f.id === room.format);
@@ -37,7 +38,7 @@ export function JoinForm({ roomId, uid, game, room, players, defaultName = "", p
 
   return (
     <>
-      <TopNav roomId={roomId} title={room.name} />
+      <TopNav roomId={roomId} title={room.name} leaveHref={leaveHref} />
       <main className="mx-auto flex max-w-sm flex-col gap-4 px-5 py-12">
         <header>
           <h1 className="text-xl font-semibold tracking-tight">{room.name}</h1>
