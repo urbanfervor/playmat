@@ -36,6 +36,9 @@ export function RoomClient({ roomId }: { roomId: string }) {
   }, [plannedToWatch, room]);
 
   const me = players.find((p) => p.uid === user?.uid);
+  // A tournament table is only for its two players; everyone else is here to watch.
+  const invited = !room?.invited || (!!user && room.invited.includes(user.uid));
+  const leaveHref = room?.tournament ? `/tournaments/${room.tournament.id}` : undefined;
   useRecordGame(roomId, room, me);
   // Reserving a seat at a scheduled table is not being at it. Private tables stay off friends' lists.
   useTablePresence(roomId, room?.status === "scheduled" || room?.private ? undefined : room?.name, me);
@@ -47,11 +50,11 @@ export function RoomClient({ roomId }: { roomId: string }) {
   if (room.status === "scheduled") {
     return <ScheduledLobby roomId={roomId} uid={user.uid} game={game} room={room} players={players} watchers={watchers} me={me} defaultName={user.displayName?.split(" ")[0] ?? ""} photoURL={user.photoURL} />;
   }
-  if (!me && !watching) {
-    return <JoinForm roomId={roomId} uid={user.uid} defaultName={user.displayName?.split(" ")[0] ?? ""} photoURL={user.photoURL} game={game} room={room} players={players} onWatch={() => setWatching(true)} />;
+  if (!me && !watching && invited) {
+    return <JoinForm roomId={roomId} uid={user.uid} defaultName={user.displayName?.split(" ")[0] ?? ""} photoURL={user.photoURL} game={game} room={room} players={players} leaveHref={leaveHref} onWatch={() => setWatching(true)} />;
   }
 
-  return <Table roomId={roomId} uid={user.uid} user={user} game={game} room={room} players={players} me={me} onSitDown={() => setWatching(false)} />;
+  return <Table roomId={roomId} uid={user.uid} user={user} game={game} room={room} players={players} me={me} leaveHref={leaveHref} onSitDown={() => setWatching(false)} />;
 }
 
 function Centered({ children }: { children: React.ReactNode }) {

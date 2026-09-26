@@ -2,9 +2,11 @@ import { FantasyBackground } from "./FantasyBackground";
 import { LiveTables } from "./LiveTables";
 import { UpcomingTables } from "./UpcomingTables";
 import { NewRoomForm } from "@/components/room/NewRoomForm";
+import { Tournaments } from "@/components/tournament/Tournaments";
 import { TopNav } from "@/components/nav/TopNav";
 import { WantBoard } from "@/components/wants/WantBoard";
 import { WantToPlayButton } from "@/components/wants/WantToPlayButton";
+import { AdminTools } from "./AdminTools";
 
 /** The home feed. /play renders it with the "I want to play" dialog already open. */
 export function HomePage({ wantOpen = false }: { wantOpen?: boolean }) {
@@ -16,11 +18,13 @@ export function HomePage({ wantOpen = false }: { wantOpen?: boolean }) {
         <div className="flex flex-col gap-8">
           <WantToPlayButton defaultOpen={wantOpen} />
           <WantBoard />
+          <Tournaments />
           <LiveTables />
           <UpcomingTables />
         </div>
         <aside className="flex flex-col gap-4 lg:sticky lg:top-6 lg:self-start">
           <NewRoomForm />
+          <AdminTools />
         </aside>
       </main>
     </>

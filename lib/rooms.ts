@@ -63,6 +63,10 @@ export interface Room {
   winnerUid?: string | null;
   /** Hidden from the home feed; joinable by link only. Missing on older rooms. */
   private?: boolean;
+  /** Only these uids may sit down. Set on tournament tables; anyone else spectates. */
+  invited?: string[];
+  /** The tournament match this table was opened for. */
+  tournament?: { id: string; match: string };
 }
 
 /**
@@ -121,7 +125,15 @@ function newRoomId() {
   return Array.from({ length: 6 }, () => alphabet[Math.floor(Math.random() * alphabet.length)]).join("");
 }
 
-export async function createRoom(hostUid: string, name: string, game: string, format: string, isPrivate: boolean, scheduledAt: Date | null = null): Promise<string> {
+export async function createRoom(
+  hostUid: string,
+  name: string,
+  game: string,
+  format: string,
+  isPrivate: boolean,
+  scheduledAt: Date | null = null,
+  extra: Partial<Pick<Room, "seats" | "invited" | "tournament">> = {},
+): Promise<string> {
   const id = newRoomId();
   const room: Room = {
     name,
@@ -140,6 +152,7 @@ export async function createRoom(hostUid: string, name: string, game: string, fo
     banned: [],
     moderation: {},
     private: isPrivate,
+    ...extra,
   };
   await setDoc(roomRef(id), { ...room, createdAt: serverTimestamp() });
   return id;

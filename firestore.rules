@@ -69,6 +69,32 @@ service cloud.firestore {
         && request.auth.token.email in ['admin@example.com'];
     }
 
+    // Tournaments are run by admins. Signed-in Google accounts add or remove
+    // their own entry while sign-ups are open; the bracket is admin-only.
+    // contacts/{uid} holds the entrant's email for paying out the prize.
+    match /tournaments/{tournamentId} {
+      function signedIn() { return request.auth != null; }
+      function google() { return signedIn() && request.auth.token.firebase.sign_in_provider != 'anonymous'; }
+      function entering() {
+        let mine = request.resource.data.entrants.get(request.auth.uid, null);
+        return mine == null || (mine.keys().hasOnly(['name', 'photoURL']) && mine.name is string && mine.name.size() <= 30);
+      }
+      allow read: if signedIn();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (google()
+        && resource.data.status == 'open'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['entrants'])
+        && request.resource.data.entrants.diff(resource.data.entrants).affectedKeys().hasOnly([request.auth.uid])
+        && request.resource.data.entrants.size() <= resource.data['size']
+        && entering());
+
+      match /contacts/{uid} {
+        allow read: if isAdmin() || (signedIn() && request.auth.uid == uid);
+        allow write: if isAdmin() || (signedIn() && request.auth.uid == uid
+          && (request.method == 'delete' || request.resource.data.keys().hasOnly(['email'])));
+      }
+    }
+
     match /rooms/{roomId} {
       function signedIn() { return request.auth != null; }
       function roomData() { return get(/databases/$(database)/documents/rooms/$(roomId)).data; }
@@ -112,6 +138,7 @@ service cloud.firestore {
         // Players sit themselves down while a seat is free; the host may also edit their doc (board tokens, fixes).
         allow create: if signedIn() && request.auth.uid == uid && request.resource.data.uid == uid
           && !(uid in roomData().get('banned', []))
+          && (!('invited' in roomData()) || uid in roomData().invited)
           && roomData().get('seated', {}).size() < roomData().seats;
         allow update: if signedIn() && (request.auth.uid == uid || roomData().hostUid == request.auth.uid)
           && request.resource.data.uid == uid
